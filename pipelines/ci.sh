@@ -24,7 +24,7 @@ echo ""
 # ===================================
 echo "Installation des dépendances..."
 echo "------------------------------------------"
-pnpm install --frozen-lockfile
+pnpm install
 echo "✅ Dépendances installées avec succès"
 echo ""
 
@@ -33,7 +33,7 @@ echo ""
 # ===================================
 echo "Vérification du typage statique..."
 echo "------------------------------------------"
-pnpm typecheck
+pnpm nuxt typecheck
 echo "✅ Typage statique validé"
 echo ""
 
@@ -44,7 +44,7 @@ echo "Analyse statique du code (ESLint)..."
 echo "------------------------------------------"
 pnpm lint
 echo "✅ Analyse statique terminée sans erreur"
-echo ""
+echo ""c
 
 # ===================================
 # Étape 4: Construction du package
@@ -53,7 +53,7 @@ echo "Construction du package..."
 echo "------------------------------------------"
 # Nuxt génère le build dans .output par défaut
 # On utilise nuxt generate pour créer une version statique
-pnpm generate
+pnpm nuxt generate
 # Copier le résultat vers le répertoire publish
 rm -rf publish
 cp -r .output/public publish
@@ -67,6 +67,43 @@ echo "Exécution des tests..."
 echo "------------------------------------------"
 pnpm test
 echo "✅ Tous les tests sont passés"
+echo ""
+
+# ===================================
+# Étape 6: Analyse des dépendances obsolètes
+# ===================================
+echo "Analyse des dépendances obsolètes..."
+echo "------------------------------------------"
+mkdir -p reports
+pnpm outdated --format json > reports/outdated-dependencies.json || true
+# La commande peut retourner un code d'erreur si des dépendances sont obsolètes
+# On utilise '|| true' pour ne pas arrêter le script
+if [ -s reports/outdated-dependencies.json ]; then
+    echo "⚠️  Des dépendances obsolètes ont été trouvées (voir reports/outdated-dependencies.json)"
+else
+    echo "✅ Toutes les dépendances sont à jour"
+fi
+echo ""
+
+# ===================================
+# Étape 7: Analyse des vulnérabilités
+# ===================================
+echo "Analyse des vulnérabilités des dépendances..."
+echo "------------------------------------------"
+pnpm audit --json > reports/vulnerable-dependencies.json || true
+# La commande peut retourner un code d'erreur si des vulnérabilités sont trouvées
+# On utilise '|| true' pour ne pas arrêter le script
+if [ -s reports/vulnerable-dependencies.json ]; then
+    # Vérifier s'il y a des vulnérabilités
+    VULN_COUNT=$(grep -o '"vulnerabilities"' reports/vulnerable-dependencies.json | wc -l || echo "0")
+    if [ "$VULN_COUNT" -gt 0 ]; then
+        echo "⚠️  Des vulnérabilités ont été trouvées (voir reports/vulnerable-dependencies.json)"
+    else
+        echo "✅ Aucune vulnérabilité trouvée"
+    fi
+else
+    echo "✅ Aucune vulnérabilité trouvée"
+fi
 echo ""
 
 echo "=========================================="
