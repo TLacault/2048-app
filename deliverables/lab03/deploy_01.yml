@@ -1,0 +1,19 @@
+# Créer un pipeline GitHub Actions qui fait un echo "Hello pipelines' world !.
+name: Lab03 Pipeline
+
+on:
+    push:
+        branches:
+            - lab03
+    pull_request:
+        branches:
+            - main
+            - lab03
+jobs:
+    deploy:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v3
+            - name: Greet the world
+              run: echo "Hello pipelines' world !"
