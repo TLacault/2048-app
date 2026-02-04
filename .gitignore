@@ -5,6 +5,7 @@
 .nitro
 .cache
 dist
+publish
 
 # Node dependencies
 node_modules
@@ -13,10 +14,14 @@ node_modules
 logs
 *.log
 
+# Reports
+reports/
+
 # Misc
 .DS_Store
 .fleet
 .idea
+.vscode
 
 # Local env files
 .env

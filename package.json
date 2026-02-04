@@ -1,20 +1,38 @@
 {
-  "name": "2048-app",
-  "type": "module",
-  "private": true,
-  "scripts": {
-    "build": "nuxt build",
-    "dev": "nuxt dev",
-    "generate": "nuxt generate",
-    "preview": "nuxt preview",
-    "postinstall": "nuxt prepare"
-  },
-  "dependencies": {
-    "@nuxt/fonts": "^0.12.1",
-    "@nuxt/ui": "^4.3.0",
-    "nuxt": "^4.2.2",
-    "tailwindcss": "^4.1.18",
-    "vue": "^3.5.27",
-    "vue-router": "^4.6.4"
-  }
+    "name": "2048-app",
+    "type": "module",
+    "private": true,
+    "scripts": {
+        "build": "nuxt build",
+        "dev": "nuxt dev",
+        "generate": "nuxt generate",
+        "preview": "nuxt preview",
+        "postinstall": "nuxt prepare",
+        "lint": "eslint .",
+        "lint:fix": "eslint . --fix",
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "typecheck": "nuxt typecheck"
+    },
+    "dependencies": {
+        "@nuxt/fonts": "^0.12.1",
+        "@nuxt/ui": "^4.3.0",
+        "lodash": "4.17.20",
+        "nuxt": "^4.2.2",
+        "tailwindcss": "^4.1.18",
+        "vue": "^3.5.27",
+        "vue-router": "^4.6.4"
+    },
+    "devDependencies": {
+        "@nuxt/eslint": "^1.13.0",
+        "@nuxt/test-utils": "^3.23.0",
+        "@typescript-eslint/eslint-plugin": "^8.54.0",
+        "@typescript-eslint/parser": "^8.54.0",
+        "@vue/test-utils": "^2.4.6",
+        "eslint": "^9.39.2",
+        "happy-dom": "^20.4.0",
+        "vitest": "^4.0.18",
+        "vue-eslint-parser": "^10.2.0",
+        "vue-tsc": "^3.2.4"
+    }
 }
