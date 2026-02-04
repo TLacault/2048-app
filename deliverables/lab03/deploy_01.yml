@@ -15,5 +15,13 @@ jobs:
         steps:
             - name: Checkout repository
               uses: actions/checkout@v3
+
             - name: Greet the world
               run: echo "Hello pipelines' world !"
+
+            - name: Display Runner Info
+              run: |
+                  echo "Running on $(uname -a)"
+                  echo "Workflow name: ${{ github.workflow }}"
+                  echo "Event name: ${{ github.event_name }}"
+                  echo "Repository: ${{ github.repository }}"

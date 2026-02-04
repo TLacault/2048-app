@@ -26,8 +26,5 @@ jobs:
               with:
                   version: 8
 
-            - name: Install dependencies
-              run: pnpm install
-
             - name: Run Lab 2 Script
               run: bash ./deliverables/lab02/lab2.sh
