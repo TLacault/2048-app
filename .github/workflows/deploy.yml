@@ -1,4 +1,4 @@
-# Créer un pipeline GitHub Actions qui fait un echo "Hello pipelines' world !.
+# Pipeline GitHub Actions pour l'intégration continue
 name: Lab03 Pipeline
 
 on:
@@ -14,14 +14,54 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - name: Checkout repository
-              uses: actions/checkout@v3
+              uses: actions/checkout@v4
 
-            - name: Greet the world
-              run: echo "Hello pipelines' world !"
+            - name: Setup pnpm
+              uses: pnpm/action-setup@v4
 
-            - name: Display Runner Info
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: "lts/*"
+                  cache: "pnpm"
+
+            - name: Identifier les dépendances obsolètes
               run: |
-                  echo "Running on $(uname -a)"
-                  echo "Workflow name: ${{ github.workflow }}"
-                  echo "Event name: ${{ github.event_name }}"
-                  echo "Repository: ${{ github.repository }}"
+                  mkdir -p reports
+                  pnpm outdated --format json > reports/outdated-dependencies.json || true
+
+            - name: Identifier les dépendances vulnérables
+              run: |
+                  pnpm audit --json > reports/vulnerable-dependencies.json || true
+
+            - name: Installer les dépendances
+              run: pnpm install
+
+            - name: Type checking
+              run: pnpm nuxt typecheck
+
+            - name: Build du projet
+              run: pnpm nuxt build
+
+            # - name: Analyse statique
+            #   run: pnpm run lint
+
+            - name: Exécution des tests
+              run: pnpm vitest run
+
+            - name: Upload du package généré
+              uses: actions/upload-artifact@v4
+              with:
+                  name: nuxt-build
+                  path: |
+                      .output/
+                      publish/
+                  retention-days: 7
+
+            - name: Upload des rapports
+              uses: actions/upload-artifact@v4
+              if: always()
+              with:
+                  name: reports
+                  path: reports/
+                  retention-days: 7

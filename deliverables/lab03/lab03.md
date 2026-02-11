@@ -41,3 +41,26 @@ Simuler une exécution locale d'une action sur le pipeline CI/CD.
 ## Extension GitHub Actions for VS Code
 
 Extension qui permet de créer, éditer et valider des workflows GitHub Actions directement depuis VS Code.
+
+## Copilot Instructions
+
+``.github/instructions.yml``
+
+Ce fichier contient des instructions générale qui seront injectées dans le prompt / contexte.
+
+## MATER.MD
+
+Ce fichier contient des éléments de contexte qui seront injectés dans le prompt / contexte.
+
+```
+---
+applyto: .github/workflows/*.yml
+---
+...
+```
+
+## AGENT.MD
+
+```/src/agent.md```
+
+Ces fichiers permettent de configurer le comportement de l'agent, notamment en lui donnant des instructions spécifiques à suivre pour réaliser une tâche.
