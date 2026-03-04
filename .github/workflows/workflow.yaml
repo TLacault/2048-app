@@ -17,6 +17,21 @@ on:
         paths-ignore:
             - "docs/**"
     workflow_dispatch:
+        inputs:
+            launchStaticAnalysis:
+                description: "Run static analysis (lint and typecheck)"
+                required: false
+                type: boolean
+                default: true
+            environment:
+                description: "Deployment environment"
+                required: false
+                type: choice
+                options:
+                    - development
+                    - staging
+                    - production
+                default: development
 
 jobs:
     build:
