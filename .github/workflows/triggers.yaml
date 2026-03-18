@@ -48,3 +48,37 @@ jobs:
               with:
                   name: 2048-app-build
                   path: .output/
+
+    deploy-production:
+        name: Deploy to Production
+        needs: ci
+        runs-on: ubuntu-latest
+        environment:
+            name: production
+            url: https://tl-2048-app.vercel.app
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v6
+
+            - name: Download build artifact
+              uses: actions/download-artifact@v6
+              with:
+                  name: 2048-app-build
+                  path: .output/
+
+            - name: Setup pnpm
+              uses: pnpm/action-setup@v4
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v6
+              with:
+                  node-version: 22
+
+            - name: Deploy to Vercel
+              run: |
+                pnpm install -D vercel
+                npx vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
+              env:
+                  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+                  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
