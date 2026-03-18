@@ -1,0 +1,135 @@
+# GitLab CI equivalent of .github/workflows/ci.yaml
+#
+# Predefined variables used:
+#   CI_COMMIT_BRANCH     - branch name on push
+#   CI_PIPELINE_SOURCE   - "push" | "merge_request_event" | "web" | "schedule"
+#   CI_MERGE_REQUEST_TARGET_BRANCH_NAME - target branch name for merge requests
+#
+# Custom variables (can be overridden in manual/scheduled pipelines):
+#   RUN_CHECKS       - "true" | "false"  (default: "true")
+#   DEPLOY_ENV       - "QA"  | "PROD"    (default: "QA")
+
+variables:
+  NODE_VERSION: "22"
+  PNPM_VERSION: "10"
+  RUN_CHECKS: "true"
+  DEPLOY_ENV: "QA"
+
+# ---------------------------------------------------------------------------
+# Pipeline-level rules (equivalent to GitHub Actions "on:" triggers)
+# - push to main
+# - merge request targeting main
+# - manual trigger (web UI)  → CI_PIPELINE_SOURCE == "web"
+# - scheduled pipeline       → CI_PIPELINE_SOURCE == "schedule"
+# Note: GitHub's paths-ignore for docs-only changes is not reproduced here.
+# GitLab workflow:rules supports changes, but not a simple direct equivalent
+# for "run unless only docs/** changed" without a more verbose allowlist.
+# ---------------------------------------------------------------------------
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push" && ($CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "lab4")
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"
+    - if: $CI_PIPELINE_SOURCE == "web"
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - when: never
+
+# ---------------------------------------------------------------------------
+# Shared configuration – caching the pnpm store across all jobs
+# ---------------------------------------------------------------------------
+default:
+  image: node:${NODE_VERSION}
+  before_script:
+    - corepack enable
+    - corepack prepare pnpm@${PNPM_VERSION} --activate
+    - pnpm config set store-dir .pnpm-store
+    - pnpm install
+  cache:
+    key:
+      files:
+        - pnpm-lock.yaml
+    paths:
+      - .pnpm-store/
+
+stages:
+  - build
+  - verify
+  - deploy
+
+# ---------------------------------------------------------------------------
+# build — runs for push, merge request, and scheduled pipelines without
+# publishing artifacts
+# ---------------------------------------------------------------------------
+build:
+  stage: build
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push" && ($CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "lab4")
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+  script:
+    - pnpm build
+
+# ---------------------------------------------------------------------------
+# build_artifact_web — runs for manual pipelines and keeps artifacts 1 day
+# This preserves the manual deploy path while keeping retention short.
+# GitLab documents literal values for artifacts:expire_in, but does not
+# document variable expansion for that field, so this stays fixed and explicit.
+# ---------------------------------------------------------------------------
+build_artifact_web:
+  stage: build
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "web"
+  script:
+    - pnpm build
+  artifacts:
+    paths:
+      - .output/
+    expire_in: 1 day
+
+# ---------------------------------------------------------------------------
+# verify jobs — run in parallel after build
+# Conditions mirror GitHub Actions:
+#   - every merge request
+#   - manual dispatch when RUN_CHECKS is "true"
+#   - scheduled pipeline
+# ---------------------------------------------------------------------------
+lint:
+  stage: verify
+  script:
+    - pnpm lint
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_PIPELINE_SOURCE == "web" && $RUN_CHECKS == "true"
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+
+typecheck:
+  stage: verify
+  script:
+    - pnpm typecheck
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_PIPELINE_SOURCE == "web" && $RUN_CHECKS == "true"
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+
+test:
+  stage: verify
+  script:
+    - pnpm test
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_PIPELINE_SOURCE == "web" && $RUN_CHECKS == "true"
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+
+# ---------------------------------------------------------------------------
+# deploy — only on manual trigger, uses DEPLOY_ENV variable
+# (equivalent to the "deploy" job with workflow_dispatch)
+# Configure scheduled pipelines in GitLab → CI/CD → Schedules
+# ---------------------------------------------------------------------------
+deploy:
+  stage: deploy
+  needs:
+    - job: build_artifact_web
+      artifacts: true
+  script:
+    - echo "Deploying to $DEPLOY_ENV"
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "web"

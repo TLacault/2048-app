@@ -1,0 +1,34 @@
+variables:
+  NODE_VERSION: "22"
+  PNPM_VERSION: "10"
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push" && ($CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "lab05")
+    - if: $CI_PIPELINE_SOURCE == "web"
+
+default:
+  image: node:${NODE_VERSION}
+  before_script:
+    - corepack enable
+    - corepack prepare pnpm@${PNPM_VERSION} --activate
+    - pnpm config set store-dir .pnpm-store
+    - pnpm install
+  cache:
+    key:
+      files:
+        - pnpm-lock.yaml
+    paths:
+      - .pnpm-store/
+
+stages:
+  - build
+
+build_artifact:
+  stage: build
+  script:
+    - pnpm build
+  artifacts:
+    paths:
+      - .output/
+    expire_in: 1 day
