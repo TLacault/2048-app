@@ -2,11 +2,11 @@ name: CI
 
 on:
     push:
-        branches: [main]
+        branches: [main, lab05]
         paths-ignore:
             - "docs/**"
     pull_request:
-        branches: [main, lab04]
+        branches: [main, lab05]
         paths-ignore:
             - "docs/**"
     workflow_dispatch:
