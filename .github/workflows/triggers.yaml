@@ -77,8 +77,8 @@ jobs:
 
             - name: Deploy to Vercel
               run: |
-                pnpm install -D vercel
-                npx vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
+                  pnpm install -D vercel
+                  npx vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
               env:
                   VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
                   VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
