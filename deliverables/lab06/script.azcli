@@ -1,0 +1,19 @@
+$subscriptionId="******-***-****-****-******"
+$tenantId="******-***-****-****-******"
+$env="qa"
+
+az login --tenant $tenantId
+az account set -s $subscriptionId
+# az account show
+
+# Create the resource group
+$rgName="rg-vue2048-$env"
+az group create -n $rgName -l "France Central" --tags Class=EI8IT213
+
+# Create the Azure Static Web App
+$swaName="stapp-vue2048-$env"
+az staticwebapp create -n $swaName -g $rgName
+
+# Get the token for the ASWA
+az staticwebapp secrets list -n $swaName --query "properties.apiKey"
+az staticwebapp list --query "[].name"

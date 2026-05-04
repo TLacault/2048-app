@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: 22
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build application
+        run: pnpm generate
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: 2048-app-build
+          path: .output/public/
+          retention-days: 1
+  qa:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: qa
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v6
+        with:
+          name: 2048-app-build
+          path: .output/public
+
+      - name: Deploy to Static Web App using SWA CLI
+        run: npx @azure/static-web-apps-cli deploy .output/public --app-name 2048-app --resource-group 2048-app-rg --deployment-token ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+                    
+  production:
+    needs: qa
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v6
+        with:
+          name: 2048-app-build
+          path: .output/public
+      
+      - name: Deploy to Static Web App using SWA GitHub Action
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          action: "upload"
+          app_location: ".output/public"
