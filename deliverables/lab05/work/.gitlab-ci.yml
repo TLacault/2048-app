@@ -1,0 +1,110 @@
+variables:
+    NODE_VERSION: "22"
+    PNPM_STORE_DIR: ".pnpm-store"
+    # Custom variables — override when triggering manually (CI/CD > Pipelines > Run pipeline)
+    # or in a schedule definition.
+    RUN_CHECKS: "true" # Run static analysis and tests (true / false)
+    ENVIRONMENT: "QA" # Target deployment environment (QA / PROD)
+
+# Equivalent of GitHub Actions' on: push / pull_request / workflow_dispatch
+workflow:
+    rules:
+        # on: push — branches: [main], paths-ignore: docs/**
+        - if: $CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "push"
+          changes:
+              - "**/*"
+              - "!docs/**"
+        # on: pull_request — branches: [main], paths-ignore: docs/**
+        - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"
+          changes:
+              - "**/*"
+              - "!docs/**"
+        # on: workflow_dispatch (manual trigger via CI/CD > Pipelines > Run pipeline)
+        - if: $CI_PIPELINE_SOURCE == "web"
+
+stages:
+    - build
+    - check
+    - deploy
+
+# Hidden job: shared image + pnpm cache config reused with extends
+.setup:
+    image: node:$NODE_VERSION
+    cache:
+        key:
+            files:
+                - pnpm-lock.yaml
+        paths:
+            - $PNPM_STORE_DIR
+    before_script:
+        - corepack enable
+        - corepack prepare pnpm@latest --activate
+        - pnpm config set store-dir $PNPM_STORE_DIR
+        - pnpm install --frozen-lockfile
+
+# ── build ─────────────────────────────────────────────────────────────────────
+# Always runs (push, MR, manual).
+# GitHub only uploads the artifact on push; GitLab always uploads when the job
+# succeeds — artifact expires in 7 days in all cases.
+
+build:
+    extends: .setup
+    stage: build
+    script:
+        - pnpm build
+    artifacts:
+        name: "2048-app-build"
+        paths:
+            - .output/
+        expire_in: 7 days
+
+# ── check stage (lint / typecheck / test run in parallel after build) ──────────
+# Equivalent of:
+#   if: github.event_name == 'pull_request'
+#    || (github.event_name == 'workflow_dispatch' && inputs.run_checks)
+
+.check_rules:
+    rules:
+        - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+        - if: $CI_PIPELINE_SOURCE == "web" && $RUN_CHECKS == "true"
+
+lint:
+    extends:
+        - .setup
+        - .check_rules
+    stage: check
+    needs: [build]
+    script:
+        - pnpm lint
+
+typecheck:
+    extends:
+        - .setup
+        - .check_rules
+    stage: check
+    needs: [build]
+    script:
+        - pnpm typecheck
+
+test:
+    extends:
+        - .setup
+        - .check_rules
+    stage: check
+    needs: [build]
+    script:
+        - pnpm test
+
+# ── deploy ────────────────────────────────────────────────────────────────────
+# Equivalent of: if: github.event_name == 'workflow_dispatch'
+# Set ENVIRONMENT (QA / PROD) as a custom variable when running the pipeline
+# manually via CI/CD > Pipelines > Run pipeline.
+
+deploy:
+    extends: .setup
+    stage: deploy
+    needs: [build]
+    rules:
+        - if: $CI_PIPELINE_SOURCE == "web"
+    script:
+        - echo "Deploying to $ENVIRONMENT"

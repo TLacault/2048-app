@@ -1,0 +1,68 @@
+name: Deploy Production
+
+on:
+    workflow_dispatch:
+    workflow_run:
+        workflows: ["CI"]
+        types: [completed]
+        branches: [main]
+
+jobs:
+    deploy-production:
+        name: Deploy to Production
+        runs-on: ubuntu-latest
+        # Uncomment environment block to require approval before deployment
+        # environment:
+        #   name: production
+        #   url: https://tl-2048-app.vercel.app
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v6
+
+            # Option 1: Download artifact from previous CI run (if workflow_run)
+            - name: Download artifact from CI workflow
+              if: github.event_name == 'workflow_run'
+              uses: actions/download-artifact@v6
+              with:
+                  name: 2048-app-build
+                  path: .output/
+                  github-token: ${{ secrets.GITHUB_TOKEN }}
+                  run-id: ${{ github.event.workflow_run.id }}
+
+            # Option 2: Build locally (if workflow_dispatch)
+            - name: Setup pnpm
+              if: github.event_name == 'workflow_dispatch'
+              uses: pnpm/action-setup@v4
+
+            - name: Setup Node.js
+              if: github.event_name == 'workflow_dispatch'
+              uses: actions/setup-node@v6
+              with:
+                  node-version: 22
+                  cache: pnpm
+
+            - name: Install dependencies
+              if: github.event_name == 'workflow_dispatch'
+              run: pnpm install
+
+            - name: Build application
+              if: github.event_name == 'workflow_dispatch'
+              run: pnpm build
+
+            # Deploy step (works with either artifact or fresh build)
+            - name: Setup pnpm for deployment
+              uses: pnpm/action-setup@v4
+
+            - name: Setup Node.js for deployment
+              uses: actions/setup-node@v6
+              with:
+                  node-version: 22
+
+            - name: Deploy to Vercel Production
+              run: |
+                  pnpm install -D vercel
+                  npx vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
+              env:
+                  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+                  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}

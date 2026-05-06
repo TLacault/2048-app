@@ -26,3 +26,4 @@ logs
 notes.md
 bin/
 reports/
+.vercel
