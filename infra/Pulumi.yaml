@@ -1,0 +1,10 @@
+name: tl-app-2048
+description: 2048 app
+runtime:
+  name: nodejs
+  options:
+    packagemanager: pnpm
+config:
+  pulumi:tags:
+    value:
+      pulumi:template: azure-typescript

@@ -1,3 +1,4 @@
+<!-- fullWidth: true tocVisible: false tableWrap: true -->
 # Lab 7
 
 ## Objectifs du TP
